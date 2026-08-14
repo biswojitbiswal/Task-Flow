@@ -1,0 +1,188 @@
+generator client {
+  provider = "prisma-client"
+  output = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum OrgRole {
+  org_admin
+  member
+}
+
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  name         String
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  memberships   OrgMember[]
+  assignments   TaskAssignment[]
+  comments      Comment[]
+  refreshTokens RefreshToken[] 
+
+  @@map("users")
+}
+
+
+model RefreshToken {
+  id                String          @id @default(uuid()) @db.Uuid
+  userId            String          @map("user_id") @db.Uuid
+  jti               String          @unique
+  tokenHash         String          @map("token_hash")
+  expiresAt         DateTime        @map("expires_at")
+  revokedAt         DateTime?       @map("revoked_at")
+  createdAt         DateTime        @default(now()) @map("created_at")
+
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+
+model Organization {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  members  OrgMember[]
+  projects Project[]
+  tasks    Task[]
+  invitations OrganizationInvitation[]
+
+  @@map("organizations")
+}
+
+model OrgMember {
+  id             String  @id @default(uuid()) @db.Uuid
+  userId         String  @map("user_id") @db.Uuid
+  organizationId String  @map("organization_id") @db.Uuid
+  role           OrgRole
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId]) // prevent the same user to be added to the same organization twice
+  @@index([organizationId]) //frequently query all members to belonging to the organization
+  @@map("org_members")
+}
+
+
+model OrganizationInvitation {
+  id                String          @id @default(uuid()) @db.Uuid
+  organizationId    String          @map("organization_id") @db.Uuid
+  email             String
+  tokenHash         String          @map("token_hash")
+  role              OrgRole         @default(member)
+  expiresAt         DateTime        @map("expires_at")
+  acceptedAt        DateTime?       @map("accepted_at")
+  createdAt         DateTime        @default(now()) @map("created_at")
+
+  organization      Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([email])
+  @@map("organization_invitations")
+}
+
+
+model Project {
+  id             String    @id @default(uuid()) @db.Uuid
+  organizationId String    @db.Uuid
+  name           String
+  description    String?
+  deletedAt      DateTime? @map("deleted_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  tasks Task[]
+
+  @@index([organizationId, deletedAt]) // supports organization scope and active/deleted project lookup
+  @@map("projects")
+}
+
+enum TaskStatus {
+  todo
+  in_progress
+  review
+  done
+}
+
+enum TaskPriority {
+  low
+  medium
+  high
+  urgent
+}
+
+model Task {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @db.Uuid
+  projectId      String       @db.Uuid
+  title          String
+  description    String?
+  status         TaskStatus
+  priority       TaskPriority
+  dueAt          DateTime?
+  deletedAt      DateTime?    @map("deleted_at")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  assignments TaskAssignment[]
+  comments    Comment[]
+
+  @@index([organizationId]) //tenant scoping index for task quries
+  @@index([organizationId, projectId]) // Tasks are frequently fetched for a specific project
+  @@index([organizationId, status]) // Required task filtering: status
+  @@index([organizationId, priority]) // Required task filtering: priority
+  @@index([organizationId, dueAt]) // Required task filtering: due-date range
+  @@index([organizationId, deletedAt]) // Normal task queries should exclude soft-deleted tasks.
+  @@map("tasks")
+}
+
+model TaskAssignment {
+  id        String   @id @default(uuid()) @db.Uuid
+  taskId    String   @db.Uuid
+  userId    String   @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@unique([taskId, userId]) // A user can only be assigned to the same task once.
+  @@index([userId]) // Required for assignee-based task filtering.
+  @@map("task_assignments")
+}
+
+model Comment {
+  id        String   @id @default(uuid()) @db.Uuid
+  taskId    String   @db.Uuid
+  userId    String   @db.Uuid
+  content   String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([taskId]) //comments fetched for a specific task
+  @@index([userId]) // useful when querying coments created by a particular user
+  @@map("comments")
+}
