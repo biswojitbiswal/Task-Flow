@@ -9,6 +9,9 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { AuthModule } from './auth/auth.module';
 import { OrganizationInvitationModule } from './org-invitation/org-invitation.module';
+import { ProjectModule } from './project/project.module';
+import { TaskModule } from './task/task.module';
+import { CommentModule } from './comment/comment.module';
 
 @Module({
   imports: [
@@ -28,6 +31,9 @@ import { OrganizationInvitationModule } from './org-invitation/org-invitation.mo
     OrgMemberModule,
     RefreshTokenModule,
     OrganizationInvitationModule,
+    ProjectModule,
+    TaskModule,
+    CommentModule,
   ],
   providers: [
     {
