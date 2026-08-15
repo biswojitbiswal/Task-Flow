@@ -15,6 +15,7 @@ import { JwtModule } from '@nestjs/jwt';
     OrgMemberModule, 
     RefreshTokenModule,
     JwtModule.register({
+      global: true,
       secret: process.env.JWT_ACCESS_SECRET,
       signOptions: {
         expiresIn: '15m',

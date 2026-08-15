@@ -65,71 +65,75 @@ export class OrganizationInvitationService {
         userId: string,
         token: string,
     ) {
-        const invitations =
-            await this.invitationRepository.findPending();
-
-        for (const invitation of invitations) {
-            const matches = await bcrypt.compare(
-                token,
-                invitation.tokenHash,
+        try {
+            const invitations = await this.invitationRepository.findPending();
+    
+            for (const invitation of invitations) {
+                const matches = await bcrypt.compare(
+                    token,
+                    invitation.tokenHash,
+                );
+    
+                if (!matches) {
+                    continue;
+                }
+    
+                if (invitation.expiresAt < new Date()) {
+                    throw new BadRequestException(
+                        'Invitation expired',
+                    );
+                }
+    
+                const user = await this.userService.findById(userId);
+    
+                if (!user) {
+                    throw new UnauthorizedException('User not found');
+                }
+    
+                if (
+                    user.email.toLowerCase() !==
+                    invitation.email.toLowerCase()
+                ) {
+                    throw new ForbiddenException(
+                        'Invitation email does not match user',
+                    );
+                }
+    
+                const existingMembership =
+                    await this.orgMemberService.findByUserAndOrganization(
+                        userId,
+                        invitation.organizationId,
+                    );
+    
+                if (existingMembership) {
+                    throw new ConflictException(
+                        'User already belongs to this organization',
+                    );
+                }
+    
+                const membership =
+                    await this.orgMemberService.create({
+                        userId,
+                        organizationId: invitation.organizationId,
+                        role: OrgRole.member,
+                    });
+    
+                await this.invitationRepository.accept(
+                    invitation.id,
+                );
+    
+                return {
+                    organizationId: membership.organizationId,
+                    role: membership.role,
+                };
+            }
+    
+            throw new UnauthorizedException(
+                'Invalid invitation',
             );
-
-            if (!matches) {
-                continue;
-            }
-
-            if (invitation.expiresAt < new Date()) {
-                throw new BadRequestException(
-                    'Invitation expired',
-                );
-            }
-
-            const user = await this.userService.findById(userId);
-
-            if (!user) {
-                throw new UnauthorizedException('User not found');
-            }
-
-            if (
-                user.email.toLowerCase() !==
-                invitation.email.toLowerCase()
-            ) {
-                throw new ForbiddenException(
-                    'Invitation email does not match user',
-                );
-            }
-
-            const existingMembership =
-                await this.orgMemberService.findByUserAndOrganization(
-                    userId,
-                    invitation.organizationId,
-                );
-
-            if (existingMembership) {
-                throw new ConflictException(
-                    'User already belongs to this organization',
-                );
-            }
-
-            const membership =
-                await this.orgMemberService.create({
-                    userId,
-                    organizationId: invitation.organizationId,
-                    role: OrgRole.member,
-                });
-
-            await this.invitationRepository.accept(
-                invitation.id,
-            );
-
-            return {
-                organizationId: membership.organizationId,
-                role: membership.role,
-            };
+        } catch (error) {
+            console.log(error);
+            throw error;
         }
-
-        throw new UnauthorizedException(
-            'Invalid invitation',
-        );
     }
 }
