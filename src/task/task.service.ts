@@ -14,12 +14,14 @@ import {
     FindTasksDto,
     UpdateTaskDto,
 } from './dtos/task.dto';
+import { JobsService } from 'src/jobs/jobs.service';
 
 @Injectable()
 export class TaskService {
     constructor(
         private readonly taskRepository: TaskRepository,
-    ) {}
+        private readonly jobService: JobsService
+    ) { }
 
 
     async create(
@@ -204,16 +206,16 @@ export class TaskService {
         taskId: string,
         dto: AssignTaskDto,
     ) {
-        await this.findOne(
+        const task = await this.findOne(
             organizationId,
             taskId,
         );
 
-        const user =
-            await this.taskRepository.findUserByOrganization(
-                dto.userId,
-                organizationId,
-            );
+
+        const user = await this.taskRepository.findUserByOrganization(
+            dto.userId,
+            organizationId,
+        );
 
         if (!user) {
             throw new NotFoundException({
@@ -238,10 +240,24 @@ export class TaskService {
             });
         }
 
-        return this.taskRepository.assignUser(
-            taskId,
-            dto.userId,
-        );
+        const assignment =
+            await this.taskRepository.assignUser(
+                taskId,
+                dto.userId,
+            );
+
+        const job =
+            await this.jobService.addTaskAssignmentEmailJob({
+                taskId: task.id,
+                assignedUserId: user.id,
+                email: user.email,
+                taskTitle: task.title,
+            });
+
+        return {
+            assignment,
+            jobId: job.jobId,
+        };
     }
 
 

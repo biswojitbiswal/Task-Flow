@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { PrismaModule } from './prisma/prisma.module';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { UserModule } from './users/users.module';
 import { OrganizationModule } from './organization/organization.module';
 import { OrgMemberModule } from './org-member/org-member.module';
@@ -12,6 +12,10 @@ import { OrganizationInvitationModule } from './org-invitation/org-invitation.mo
 import { ProjectModule } from './project/project.module';
 import { TaskModule } from './task/task.module';
 import { CommentModule } from './comment/comment.module';
+import { RedisModule } from './redis/redis.module';
+import { BullModule } from '@nestjs/bullmq';
+import { JobsModule } from './jobs/jobs.module';
+import { QueueModule } from './queue/queue.module';
 
 @Module({
   imports: [
@@ -24,6 +28,8 @@ import { CommentModule } from './comment/comment.module';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    QueueModule,
+    RedisModule,
     PrismaModule,
     AuthModule,
     UserModule,
@@ -34,6 +40,7 @@ import { CommentModule } from './comment/comment.module';
     ProjectModule,
     TaskModule,
     CommentModule,
+    JobsModule
   ],
   providers: [
     {
