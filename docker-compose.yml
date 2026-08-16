@@ -96,6 +96,10 @@ services:
       redis:
         condition: service_healthy
 
+networks:
+  default:
+    name: taskflow_default
+    
 volumes:
   postgres_data:
   redis_data:
