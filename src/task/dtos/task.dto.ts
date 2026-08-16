@@ -163,6 +163,27 @@ export const AssignTaskDto = z.object({
 });
 
 
+export const BulkTaskStatusUpdateDto = z.object({
+    taskIds: z
+        .array(
+            z.string().uuid('Invalid task ID'),
+        )
+        .min(1, 'At least one task ID is required'),
+
+    status: z.enum([
+        'todo',
+        'in_progress',
+        'review',
+        'done',
+    ]),
+});
+
+
+
+export type BulkTaskStatusUpdateDto = z.infer<
+    typeof BulkTaskStatusUpdateDto
+>;
+
 export type CreateTaskDto = z.infer<typeof CreateTaskDto>;
 
 export type UpdateTaskDto = z.infer<typeof UpdateTaskDto>;

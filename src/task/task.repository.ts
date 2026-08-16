@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { Prisma } from 'src/generated/prisma/client';
+import { Prisma, TaskStatus } from 'src/generated/prisma/client';
 
 @Injectable()
 export class TaskRepository {
@@ -199,6 +199,21 @@ export class TaskRepository {
         });
     }
 
+
+    async findById(id: string) {
+        return this.prisma.task.findFirst({
+            where: {
+                id,
+                deletedAt: null,
+            },
+            select: {
+                id: true,
+                organizationId: true,
+            },
+        });
+    }
+
+
     async update(
         id: string,
         data: Prisma.TaskUpdateInput,
@@ -296,6 +311,45 @@ export class TaskRepository {
                     taskId,
                     userId,
                 },
+            },
+        });
+    }
+
+
+    async findManyByIds(
+        taskIds: string[],
+        organizationId: string,
+    ) {
+        return this.prisma.task.findMany({
+            where: {
+                id: {
+                    in: taskIds,
+                },
+                organizationId,
+                deletedAt: null,
+            },
+            select: {
+                id: true,
+            },
+        });
+    }
+
+
+    async bulkUpdateStatus(
+        taskIds: string[],
+        organizationId: string,
+        status: TaskStatus,
+    ) {
+        return this.prisma.task.updateMany({
+            where: {
+                id: {
+                    in: taskIds,
+                },
+                organizationId,
+                deletedAt: null,
+            },
+            data: {
+                status,
             },
         });
     }

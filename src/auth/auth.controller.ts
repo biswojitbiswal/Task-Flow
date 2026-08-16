@@ -1,6 +1,8 @@
 import {
   Body,
   Controller,
+  HttpCode,
+  HttpStatus,
   Post,
   Request,
   UseGuards,
@@ -85,6 +87,8 @@ export class AuthController {
     return this.authService.register(dto);
   }
 
+
+  @HttpCode(HttpStatus.OK)
   @Post('login')
   @ApiOperation({ summary: 'Login' })
   @ApiBody({
@@ -119,6 +123,7 @@ export class AuthController {
   ) {
     return this.authService.login(dto);
   }
+
 
   @UseGuards(PreAuthGuard)
   @Post('select-organization')
@@ -157,6 +162,7 @@ export class AuthController {
     );
   }
 
+  
   @Post('refresh')
   @ApiOperation({ summary: 'Refresh access token' })
   @ApiBody({

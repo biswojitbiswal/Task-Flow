@@ -1,5 +1,6 @@
 import {
     ConflictException,
+    ForbiddenException,
     Injectable,
     NotFoundException,
 } from '@nestjs/common';
@@ -10,11 +11,13 @@ import { TaskRepository } from './task.repository';
 
 import {
     AssignTaskDto,
+    BulkTaskStatusUpdateDto,
     CreateTaskDto,
     FindTasksDto,
     UpdateTaskDto,
 } from './dtos/task.dto';
 import { JobsService } from 'src/jobs/jobs.service';
+import { getPagination } from 'src/common/utils/pagination';
 
 @Injectable()
 export class TaskService {
@@ -83,7 +86,10 @@ export class TaskService {
             dueTo,
         } = dto;
 
-        const skip = (page - 1) * limit;
+        const { skip, take } = getPagination(
+            page,
+            limit,
+        );
 
         const [data, total] = await Promise.all([
             this.taskRepository.findMany(
@@ -126,6 +132,26 @@ export class TaskService {
     }
 
 
+    // async findOne(
+    //     organizationId: string,
+    //     taskId: string,
+    // ) {
+    //     const task =
+    //         await this.taskRepository.findOne(
+    //             taskId,
+    //             organizationId,
+    //         );
+
+    //     if (!task) {
+    //         throw new NotFoundException({
+    //             error: 'Task not found',
+    //             code: 'TASK_NOT_FOUND',
+    //             details: {},
+    //         });
+    //     }
+
+    //     return task;
+    // }
     async findOne(
         organizationId: string,
         taskId: string,
@@ -136,7 +162,14 @@ export class TaskService {
                 organizationId,
             );
 
-        if (!task) {
+        if (task) {
+            return task;
+        }
+
+        const existingTask =
+            await this.taskRepository.findById(taskId);
+
+        if (!existingTask) {
             throw new NotFoundException({
                 error: 'Task not found',
                 code: 'TASK_NOT_FOUND',
@@ -144,7 +177,22 @@ export class TaskService {
             });
         }
 
-        return task;
+        if (
+            existingTask.organizationId !==
+            organizationId
+        ) {
+            throw new ForbiddenException({
+                error: 'You do not have access to this task',
+                code: 'TASK_ACCESS_FORBIDDEN',
+                details: {},
+            });
+        }
+
+        throw new NotFoundException({
+            error: 'Task not found',
+            code: 'TASK_NOT_FOUND',
+            details: {},
+        });
     }
 
 
@@ -289,5 +337,36 @@ export class TaskService {
             taskId,
             userId,
         );
+    }
+
+
+    async bulkUpdateStatus(
+        organizationId: string,
+        dto: BulkTaskStatusUpdateDto,
+    ) {
+        const tasks =
+            await this.taskRepository.findManyByIds(
+                dto.taskIds,
+                organizationId,
+            );
+
+        if (tasks.length !== dto.taskIds.length) {
+            throw new NotFoundException({
+                error: 'One or more tasks not found',
+                code: 'TASK_NOT_FOUND',
+                details: {},
+            });
+        }
+
+        const result =
+            await this.taskRepository.bulkUpdateStatus(
+                dto.taskIds,
+                organizationId,
+                dto.status as TaskStatus,
+            );
+
+        return {
+            updatedCount: result.count,
+        };
     }
 }

@@ -33,6 +33,7 @@ import { ZodValidationPipe } from 'src/common/pipes/zod-validation.pipe';
 
 import {
     AssignTaskDto,
+    BulkTaskStatusUpdateDto,
     CreateTaskDto,
     FindTasksDto,
     UpdateTaskDto,
@@ -48,7 +49,7 @@ import {
 export class TaskController {
     constructor(
         private readonly taskService: TaskService,
-    ) {}
+    ) { }
 
 
     @Post()
@@ -226,6 +227,75 @@ export class TaskController {
         return this.taskService.findMany(
             user.organizationId,
             query,
+        );
+    }
+
+
+
+    @Patch('bulk-status')
+    @ApiOperation({
+        summary: 'Bulk update task status',
+        description:
+            'Updates the status of multiple tasks belonging to the authenticated user organization.',
+    })
+    @ApiBody({
+        schema: {
+            type: 'object',
+            required: ['taskIds', 'status'],
+            properties: {
+                taskIds: {
+                    type: 'array',
+                    minItems: 1,
+                    items: {
+                        type: 'string',
+                        format: 'uuid',
+                    },
+                    example: [
+                        '550e8400-e29b-41d4-a716-446655440000',
+                        '6ba7b810-9dad-11d1-80b4-00c04fd430c8',
+                    ],
+                },
+                status: {
+                    type: 'string',
+                    enum: [
+                        'todo',
+                        'in_progress',
+                        'review',
+                        'done',
+                    ],
+                    example: 'done',
+                },
+            },
+        },
+    })
+    @ApiResponse({
+        status: 200,
+        description: 'Task statuses updated successfully.',
+    })
+    @ApiResponse({
+        status: 400,
+        description: 'Validation failed.',
+    })
+    @ApiResponse({
+        status: 401,
+        description: 'Authentication required.',
+    })
+    @ApiResponse({
+        status: 404,
+        description: 'One or more tasks were not found.',
+    })
+    async bulkUpdateStatus(
+        @CurrentUser() user: AuthenticatedUser,
+        @Body(
+            new ZodValidationPipe(
+                BulkTaskStatusUpdateDto,
+            ),
+        )
+        dto: BulkTaskStatusUpdateDto,
+    ) {
+        return this.taskService.bulkUpdateStatus(
+            user.organizationId,
+            dto,
         );
     }
 

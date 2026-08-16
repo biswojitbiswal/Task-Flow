@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Prisma, OrgRole } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { MemberQueryDto } from './dtos/org-member.dto';
+import { getPagination } from 'src/common/utils/pagination';
 
 @Injectable()
 export class OrgMemberRepository {
@@ -45,7 +46,10 @@ export class OrgMemberRepository {
       search,
     } = query;
 
-    const skip = (page - 1) * limit;
+    const { skip, take } = getPagination(
+      page,
+      limit,
+    );
 
     const where: Prisma.OrgMemberWhereInput = {
       organizationId,

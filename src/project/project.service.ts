@@ -5,6 +5,7 @@ import {
 
 import { ProjectRepository } from './project.repository';
 import { CreateProjectDto, FindProjectsDto, UpdateProjectDto } from './dtos/project.dto';
+import { getPagination } from 'src/common/utils/pagination';
 
 
 @Injectable()
@@ -34,7 +35,10 @@ export class ProjectService {
   ) {
     const { page, limit, search } = dto;
 
-    const skip = (page - 1) * limit;
+    const { skip, take } = getPagination(
+      page,
+      limit,
+    );
 
     const [data, total] = await Promise.all([
       this.projectRepository.findMany(

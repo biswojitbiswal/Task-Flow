@@ -8,13 +8,13 @@
  *
  * 🟢 You can import this file directly.
  */
-export type * from './models/User.js'
-export type * from './models/RefreshToken.js'
-export type * from './models/Organization.js'
-export type * from './models/OrgMember.js'
-export type * from './models/OrganizationInvitation.js'
-export type * from './models/Project.js'
-export type * from './models/Task.js'
-export type * from './models/TaskAssignment.js'
-export type * from './models/Comment.js'
-export type * from './commonInputTypes.js'
+export type * from './models/User'
+export type * from './models/RefreshToken'
+export type * from './models/Organization'
+export type * from './models/OrgMember'
+export type * from './models/OrganizationInvitation'
+export type * from './models/Project'
+export type * from './models/Task'
+export type * from './models/TaskAssignment'
+export type * from './models/Comment'
+export type * from './commonInputTypes'
