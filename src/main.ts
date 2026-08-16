@@ -34,7 +34,7 @@ async function bootstrap() {
     new ResponseInterceptor(),
   );
 
-  await app.listen(process.env.PORT ?? 3000);
+  await app.listen(process.env.PORT ?? 3000, '0.0.0.0');
   console.log(`Application starts on ${process.env.PORT ?? 3000}`);
 }
 bootstrap();
