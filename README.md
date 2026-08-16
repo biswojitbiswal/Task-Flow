@@ -90,6 +90,7 @@ To seed the Docker database, build the seed stage and run it on the Compose netw
 docker build --target seed -t taskflow-seed .
 docker run --rm --network taskflow_default -e DATABASE_URL="postgresql://taskflow:change-me@postgres:5432/taskflow" taskflow-seed
 ```
+The Compose network is explicitly named `taskflow_default`, so the seed command works regardless of the directory name used to clone the repository.
 
 If you change `POSTGRES_PASSWORD` in `.env`, use the same value in the seed command's `DATABASE_URL`.
 
